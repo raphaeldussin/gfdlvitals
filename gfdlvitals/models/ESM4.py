@@ -1,3 +1,4 @@
+import os
 import tarfile
 
 from gfdlvitals import averagers
@@ -132,18 +133,20 @@ def routines(args, infile):
     # -- Ice
     label = "Ice"
     modules = ["ice_month"]
+    fgs = None
     if modifier + fYear + ".ice_static.nc" in members:
         fgs = extract_from_tar(tar, modifier + fYear + ".ice_static.nc")
-    else:
+    elif modifier + fYear + ".ice_month.nc" in members:
         fgs = extract_from_tar(tar, modifier + fYear + ".ice_month.nc")
-    for module in modules:
-        fname = modifier + fYear + "." + module + ".nc"
-        if fname in members:
-            fdata = extract_from_tar(tar, fname)
-            print(fname)
-            averagers.ice.average(fgs, fdata, fYear, "./", label)
-            fdata.close()
-    fgs.close()
+    if fgs is not None:
+        for module in modules:
+            fname = modifier + fYear + "." + module + ".nc"
+            if fname in members:
+                fdata = extract_from_tar(tar, fname)
+                print(fname)
+                averagers.ice.average(fgs, fdata, fYear, "./", label)
+                fdata.close()
+        fgs.close()
 
     # -- COBALT
     label = "COBALT"
@@ -153,18 +156,20 @@ def routines(args, infile):
         "ocean_cobalt_tracers_year",
         "ocean_cobalt_tracers_int",
     ]
+    fgs = None
     if modifier + fYear + ".ocean_static.nc" in members:
         fgs = extract_from_tar(tar, modifier + fYear + ".ocean_static.nc")
-    else:
+    elif modifier + fYear + ".ocean_month.nc" in members:
         fgs = extract_from_tar(tar, modifier + fYear + ".ocean_month.nc")
-    for module in modules:
-        fname = modifier + fYear + "." + module + ".nc"
-        if fname in members:
-            fdata = extract_from_tar(tar, fname)
-            print(fname)
-            averagers.tripolar.average(fgs, fdata, fYear, "./", label)
-            fdata.close()
-    fgs.close()
+    if fgs is not None:
+        for module in modules:
+            fname = modifier + fYear + "." + module + ".nc"
+            if fname in members:
+                fdata = extract_from_tar(tar, fname)
+                print(fname)
+                averagers.tripolar.average(fgs, fdata, fYear, "./", label)
+                fdata.close()
+        fgs.close()
 
     # -- BLING
     label = "BLING"
@@ -176,18 +181,20 @@ def routines(args, infile):
         "ocean_bling_cmip6_omip_tracers_month_z",
         "ocean_bling_cmip6_omip_tracers_year_z",
     ]
+    fgs = None
     if modifier + fYear + ".ocean_static.nc" in members:
         fgs = extract_from_tar(tar, modifier + fYear + ".ocean_static.nc")
-    else:
+    elif modifier + fYear + ".ocean_month.nc" in members:
         fgs = extract_from_tar(tar, modifier + fYear + ".ocean_month.nc")
-    for module in modules:
-        fname = modifier + fYear + "." + module + ".nc"
-        if fname in members:
-            fdata = extract_from_tar(tar, fname)
-            print(fname)
-            averagers.tripolar.average(fgs, fdata, fYear, "./", label)
-            fdata.close()
-    fgs.close()
+    if fgs is not None:
+        for module in modules:
+            fname = modifier + fYear + "." + module + ".nc"
+            if fname in members:
+                fdata = extract_from_tar(tar, fname)
+                print(fname)
+                averagers.tripolar.average(fgs, fdata, fYear, "./", label)
+                fdata.close()
+        fgs.close()
 
     # -- Ocean
     label = "Ocean"
@@ -220,4 +227,5 @@ def routines(args, infile):
     infile = infile.replace("/history/", "/ascii/")
     infile = infile.replace(".nc.tar", ".ascii_out.tar")
     label = "Timing"
-    diags.fms.timing(infile, fYear, "./", label)
+    if os.path.exists(infile):
+        diags.fms.timing(infile, fYear, "./", label)
