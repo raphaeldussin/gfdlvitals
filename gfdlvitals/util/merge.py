@@ -1,17 +1,21 @@
-import sqlite3, sys
+""" sqlite file merging utilites """
 
-__all__ = ['merge']
+import sqlite3
 
-def merge(source,destination):
+__all__ = ["merge"]
+
+
+def merge(source, destination):
+    """ merges two sqlite files """
     con = sqlite3.connect(destination)
     cur = con.cursor()
-    sql = "ATTACH '"+source+"' as src"
+    sql = "ATTACH '" + source + "' as src"
     cur.execute(sql)
     cur.close()
     cur = con.cursor()
     sql = "SELECT * FROM main.sqlite_master WHERE type='table'"
     cur.execute(sql)
-    main_tables = cur.fetchall()
+    cur.fetchall()
     cur.close()
     cur = con.cursor()
     sql = "SELECT * FROM src.sqlite_master WHERE type='table'"
@@ -19,14 +23,14 @@ def merge(source,destination):
     src_tables = cur.fetchall()
     cur.close()
     for var in src_tables:
-      varname = var[1]
-      if varname not in [x[1] for x in src_tables]:
+        varname = var[1]
+        if varname not in [x[1] for x in src_tables]:
+            cur = con.cursor()
+            cur.execute(var[-1])
+            cur.close()
         cur = con.cursor()
-        cur.execute(var[-1])
+        sql = "INSERT OR REPLACE into " + varname + " SELECT * FROM src." + varname
+        cur.execute(sql)
         cur.close()
-      cur = con.cursor()
-      sql = "INSERT OR REPLACE into "+varname+" SELECT * FROM src."+varname
-      cur.execute(sql)
-      cur.close()
     con.commit()
     con.close()
