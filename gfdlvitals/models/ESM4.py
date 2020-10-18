@@ -202,7 +202,7 @@ def routines(args, infile):
     if fname in members:
         print(fname)
         fdata = extract_from_tar(tar, fname)
-        extract_ocean_scalar.MOM6(fdata, fYear, "./")
+        extract_ocean_scalar.mom6(fdata, fYear, "./")
         fdata.close()
 
     # -- AMOC
@@ -214,7 +214,7 @@ def routines(args, infile):
         fname = modifier + fYear + ".ocean_annual_z.nc"
         if fname in members:
             vhFile = extract_from_tar(tar, fname)
-            diags.amoc.MOM6(vhFile, ocean_hgrid, topog, fYear, "./", label)
+            diags.amoc.mom6(vhFile, ocean_hgrid, topog, fYear, "./", label)
             ocean_hgrid.close()
             topog.close()
             vhFile.close()

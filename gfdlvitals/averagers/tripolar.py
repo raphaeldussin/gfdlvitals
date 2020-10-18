@@ -66,16 +66,16 @@ def average(f1, f2, year, out, lab):
     global GEOLAT
     global CELL_AREA
 
-    if "GEOLAT" in FGS.variables.keys():
+    if "geolat" in FGS.variables.keys():
         GEOLAT = FGS.variables["geolat"][:]
-    elif "GEOLAT_t" in FGS.variables.keys():
+    elif "geolat_t" in FGS.variables.keys():
         GEOLAT = FGS.variables["geolat_t"][:]
     else:
         raise ValueError("Unable to determine geolat.")
 
-    if "GEOLON" in FGS.variables.keys():
+    if "geolon" in FGS.variables.keys():
         GEOLON = FGS.variables["geolon"][:]
-    elif "GEOLAT_t" in FGS.variables.keys():
+    elif "geolon_t" in FGS.variables.keys():
         GEOLON = FGS.variables["geolon_t"][:]
     else:
         raise ValueError("Unable to determine GEOLON.")

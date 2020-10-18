@@ -14,7 +14,7 @@ def process_var(v):
         for reg in ["global", "nh", "sh"]:
             sqlite_out = outdir + "/" + fYear + "." + reg + "Ave" + label + ".db"
             _v, _area = gmeantools.mask_latitude_bands(
-                data, cellArea, geoLat, geoLon, region=reg
+                data, cellArea, geoLat, region=reg
             )
             _v = np.ma.sum((_v * _area), axis=(-1, -2)) / np.ma.sum(
                 _area, axis=(-1, -2)
@@ -83,7 +83,7 @@ def average(f1, f2, year, out, lab):
         vars = []
         # area and extent in million square km
         _conc, _area = gmeantools.mask_latitude_bands(
-            concentration, cellArea, geoLat, geoLon, region=reg
+            concentration, cellArea, geoLat, region=reg
         )
         vars.append(("area", (np.ma.sum((_conc * _area), axis=(-1, -2)) * 1.0e-12)))
         vars.append(
