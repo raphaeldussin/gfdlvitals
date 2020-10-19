@@ -1,36 +1,51 @@
-import numpy as np
+""" legacy land model averaging routines """
+
 import multiprocessing
+import numpy as np
 
 import gfdlvitals.util.gmeantools as gmeantools
 
 __all__ = ["process_var", "average"]
 
+FS = None
+FDATA = None
+FYEAR = None
+OUTDIR = None
+LABEL = None
+GEOLON = None
+GEOLAT = None
+CELL_AREA = None
+CELL_FRAC = None
+SOIL_AREA = None
+SOIL_FRAC = None
 
-def process_var(varName):
-    varshape = fdata.variables[varName].shape
+
+def process_var(varname):
+    """ process a single variable """
+    varshape = FDATA.variables[varname].shape
     if len(varshape) >= 3:
-        var = fdata[varName][:]
-        var = np.ma.average(var, axis=0, weights=fdata["average_DT"][:])
+        var = FDATA[varname][:]
+        var = np.ma.average(var, axis=0, weights=FDATA["average_DT"][:])
 
     if len(varshape) == 3:
         for reg in ["global", "tropics", "nh", "sh"]:
-            sqlfile = outdir + "/" + fYear + "." + reg + "Ave" + label + ".db"
+            sqlfile = OUTDIR + "/" + FYEAR + "." + reg + "Ave" + LABEL + ".db"
             avg, summed = gmeantools.legacy_area_mean(
                 var,
-                cellArea,
-                geoLat,
-                geoLon,
-                cellFrac=cellFrac,
-                soilFrac=soilFrac,
+                CELL_AREA,
+                GEOLAT,
+                GEOLON,
+                cell_frac=CELL_FRAC,
+                soil_frac=SOIL_FRAC,
                 region=reg,
-                varName=varName,
+                varname=varname,
                 component="land",
             )
             if not hasattr(avg, "mask"):
                 gmeantools.write_sqlite_data(
                     sqlfile,
-                    varName,
-                    fYear[:4],
+                    varname,
+                    FYEAR[:4],
                     varmean=avg,
                     varsum=summed,
                     component="land",
@@ -38,42 +53,43 @@ def process_var(varName):
 
 
 def average(f1, f2, year, out, lab):
-    global fs
-    global fdata
-    global fYear
-    global outdir
-    global label
+    """ averaging function """
+    global FS
+    global FDATA
+    global FYEAR
+    global OUTDIR
+    global LABEL
 
-    fs = f1
-    fdata = f2
-    fYear = year
-    outdir = out
-    label = lab
+    FS = f1
+    FDATA = f2
+    FYEAR = year
+    OUTDIR = out
+    LABEL = lab
 
     # geometry
-    global geoLon
-    global geoLat
+    global GEOLON
+    global GEOLAT
 
-    lat = fdata["lat"][:]
-    lon = fdata["lon"][:]
-    geoLon, geoLat = np.meshgrid(lon, lat)
+    lat = FDATA["lat"][:]
+    lon = FDATA["lon"][:]
+    GEOLON, GEOLAT = np.meshgrid(lon, lat)
 
     # land areas and fractions
-    global cellArea
-    global cellFrac
-    global soilArea
-    global soilFrac
+    global CELL_AREA
+    global CELL_FRAC
+    global SOIL_AREA
+    global SOIL_FRAC
 
-    cellArea = fs["land_area"][:]
-    cellFrac = fs["land_frac"][:]
+    CELL_AREA = FS["land_area"][:]
+    CELL_FRAC = FS["land_frac"][:]
 
-    if "soil_area" in fs.variables.keys():
-        soilArea = fs["soil_area"][0]
-    elif "soil_area" in fdata.variables.keys():
-        soilArea = fdata["soil_area"][0]
+    if "soil_area" in FS.variables.keys():
+        SOIL_AREA = FS["soil_area"][0]
+    elif "soil_area" in FDATA.variables.keys():
+        SOIL_AREA = FDATA["soil_area"][0]
     else:
         raise ValueError("Unable to locate soil area field.")
-    soilFrac = np.ma.array(soilArea / (cellArea * cellFrac))
+    SOIL_FRAC = np.ma.array(SOIL_AREA / (CELL_AREA * CELL_FRAC))
 
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    pool.map(process_var, fdata.variables.keys())
+    pool.map(process_var, FDATA.variables.keys())

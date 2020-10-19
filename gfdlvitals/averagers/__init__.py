@@ -1,3 +1,5 @@
+""" Averaging utilities for different grid types """
+
 from . import cubesphere
 from . import ice
 from . import latlon

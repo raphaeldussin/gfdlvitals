@@ -1,8 +1,8 @@
 """ collection of model descriptions """
 
-from . import ESM2
-from . import ESM4
-from . import OM4
+from . import esm2
+from . import esm4
+from . import om4
 from . import generic
 
-__all__ = ["generic", "ESM2", "ESM4", "OM4"]
+__all__ = ["generic", "esm2", "esm4", "om4"]

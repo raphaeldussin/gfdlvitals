@@ -30,7 +30,7 @@ def arguments():
         help='Output directory. Default is current directory')
 
     parser.add_argument('-m', '--modelclass', type=str, default='generic',
-        help='Model class. Options include generic, ESM2, ESM4, and OM4. Default is generic')
+        help='Model class. Options include generic, ESM2, esm4, and OM4. Default is generic')
 
     parser.add_argument('-s', '--startyear', type=int, default=None,
         help='Starting year to process. Default is all years.')
@@ -57,8 +57,8 @@ def process_year(args,infile):
     #-- Run the main code
     if args.modelclass == 'ESM2':
         gfdlvitals.models.ESM2.routines(args,infile)
-    elif args.modelclass == 'ESM4':
-        gfdlvitals.models.ESM4.routines(args,infile)
+    elif args.modelclass == 'esm4':
+        gfdlvitals.models.esm4.routines(args,infile)
     elif args.modelclass == 'OM4':
         gfdlvitals.models.OM4.routines(args,infile)
     elif args.modelclass == 'generic':

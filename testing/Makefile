@@ -13,7 +13,7 @@ test_data:
 	rm -fR test_data/ascii
 
 $(OBJECTS): test_data
-	gfdlvitals -m ESM4 -g test_data/gridspec.tar -o db test_data/history
+	gfdlvitals -m esm4 -g test_data/gridspec.tar -o db test_data/history
 
 check: $(OBJECTS)
 	mkdir -p results

@@ -16,6 +16,7 @@ GEOLON = None
 GEOLAT = None
 CELL_AREA = None
 
+
 def process_var(varname):
     """ function to process a variable """
 

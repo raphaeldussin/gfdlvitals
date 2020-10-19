@@ -1,109 +1,125 @@
-import numpy as np
+""" LM4-class land model averaging utilities """
+
 import multiprocessing
 import re
+
+import numpy as np
 
 import gfdlvitals.util.gmeantools as gmeantools
 
 __all__ = ["process_var", "average"]
 
+GS_TILES = None
+DATA_TILES = None
+FYEAR = None
+OUTDIR = None
+LABEL = None
+GEOLON = None
+GEOLAT = None
+AREA_TYPES = None
+CELL_DEPTH = None
 
-def process_var(varName):
-    varshape = data_tiles[0].variables[varName].shape
-    units = gmeantools.extract_metadata(data_tiles[0], varName, "units")
-    long_name = gmeantools.extract_metadata(data_tiles[0], varName, "long_name")
-    cell_measures = gmeantools.extract_metadata(data_tiles[0], varName, "cell_measures")
+
+def process_var(varname):
+    """ process a variable """
+    varshape = DATA_TILES[0].variables[varname].shape
+    units = gmeantools.extract_metadata(DATA_TILES[0], varname, "units")
+    long_name = gmeantools.extract_metadata(DATA_TILES[0], varname, "long_name")
+    cell_measures = gmeantools.extract_metadata(DATA_TILES[0], varname, "cell_measures")
     area_measure = gmeantools.parse_cell_measures(cell_measures, "area")
     if (area_measure is not None) and (area_measure != "area_ntrl"):
         if len(varshape) >= 3:
-            var = gmeantools.cube_sphere_aggregate(varName, data_tiles)
+            var = gmeantools.cube_sphere_aggregate(varname, DATA_TILES)
             var = np.ma.average(
-                var, axis=0, weights=data_tiles[0].variables["average_DT"][:]
+                var, axis=0, weights=DATA_TILES[0].variables["average_DT"][:]
             )
 
             if len(varshape) == 3:
                 for reg in ["global", "tropics", "nh", "sh"]:
-                    result, areaSum = gmeantools.area_mean(
-                        var, area_types[area_measure], geoLat, geoLon, region=reg
+                    result, area_sum = gmeantools.area_mean(
+                        var, AREA_TYPES[area_measure], GEOLAT, GEOLON, region=reg
                     )
                     if not hasattr(result, "mask"):
                         sqlfile = (
-                            outdir + "/" + fYear + "." + reg + "Ave" + label + ".db"
+                            OUTDIR + "/" + FYEAR + "." + reg + "Ave" + LABEL + ".db"
                         )
-                        gmeantools.write_metadata(sqlfile, varName, "units", units)
+                        gmeantools.write_metadata(sqlfile, varname, "units", units)
                         gmeantools.write_metadata(
-                            sqlfile, varName, "long_name", long_name
+                            sqlfile, varname, "long_name", long_name
                         )
                         gmeantools.write_metadata(
-                            sqlfile, varName, "cell_measure", area_measure
+                            sqlfile, varname, "cell_measure", area_measure
                         )
                         gmeantools.write_sqlite_data(
-                            sqlfile, varName, fYear[:4], result
+                            sqlfile, varname, FYEAR[:4], result
                         )
                         gmeantools.write_sqlite_data(
-                            sqlfile, area_measure, fYear[:4], areaSum
+                            sqlfile, area_measure, FYEAR[:4], area_sum
                         )
 
             elif len(varshape) == 4:
-                if varshape[1] == cellDepth.shape[0]:
+                if varshape[1] == CELL_DEPTH.shape[0]:
                     for reg in ["global", "tropics", "nh", "sh"]:
-                        result, volumeSum = gmeantools.area_mean(
+                        result, volume_sum = gmeantools.area_mean(
                             var,
-                            area_types[area_measure],
-                            geoLat,
-                            geoLon,
+                            AREA_TYPES[area_measure],
+                            GEOLAT,
+                            GEOLON,
                             region=reg,
-                            cellDepth=cellDepth,
+                            cell_depth=CELL_DEPTH,
                         )
                         sqlfile = (
-                            outdir + "/" + fYear + "." + reg + "Ave" + label + ".db"
+                            OUTDIR + "/" + FYEAR + "." + reg + "Ave" + LABEL + ".db"
                         )
-                        gmeantools.write_metadata(sqlfile, varName, "units", units)
+                        gmeantools.write_metadata(sqlfile, varname, "units", units)
                         gmeantools.write_metadata(
-                            sqlfile, varName, "long_name", long_name
+                            sqlfile, varname, "long_name", long_name
                         )
                         gmeantools.write_metadata(
                             sqlfile,
-                            varName,
+                            varname,
                             "cell_measure",
                             area_measure.replace("area", "volume"),
                         )
                         gmeantools.write_sqlite_data(
-                            sqlfile, varName, fYear[:4], result
+                            sqlfile, varname, FYEAR[:4], result
                         )
                         gmeantools.write_sqlite_data(
                             sqlfile,
                             area_measure.replace("area", "volume"),
-                            fYear[:4],
-                            volumeSum,
+                            FYEAR[:4],
+                            volume_sum,
                         )
 
 
 def average(gs_tl, da_tl, year, out, lab):
-    global gs_tiles
-    global data_tiles
-    global fYear
-    global outdir
-    global label
+    """ averaging function """
 
-    gs_tiles = gs_tl
-    data_tiles = da_tl
-    fYear = year
-    outdir = out
-    label = lab
+    global GS_TILES
+    global DATA_TILES
+    global FYEAR
+    global OUTDIR
+    global LABEL
 
-    global geoLon
-    global geoLat
+    GS_TILES = gs_tl
+    DATA_TILES = da_tl
+    FYEAR = year
+    OUTDIR = out
+    LABEL = lab
 
-    for f in [data_tiles, gs_tiles]:
+    global GEOLON
+    global GEOLAT
+
+    for f in [DATA_TILES, GS_TILES]:
         if "geolat_t" in f[0].variables:
-            geoLat = gmeantools.cube_sphere_aggregate("geolat_t", data_tiles)
-            geoLon = gmeantools.cube_sphere_aggregate("geolon_t", data_tiles)
+            GEOLAT = gmeantools.cube_sphere_aggregate("geolat_t", DATA_TILES)
+            GEOLON = gmeantools.cube_sphere_aggregate("geolon_t", DATA_TILES)
             break
 
-    global area_types
+    global AREA_TYPES
 
-    area_types = {}
-    for f in [data_tiles, gs_tiles]:
+    AREA_TYPES = {}
+    for f in [DATA_TILES, GS_TILES]:
         for v in sorted(f[0].variables):
             if re.match(r".*_area", v) or re.match(r"area.*", v):
                 # for now, skip the area variables that depend on time
@@ -111,17 +127,17 @@ def average(gs_tl, da_tl, year, out, lab):
                 for d in f[0].variables[v].dimensions:
                     timedependent = timedependent or f[0].dimensions[d].isunlimited()
                 if not timedependent:
-                    if v not in area_types.keys():
-                        area_types[v] = gmeantools.cube_sphere_aggregate(v, f)
+                    if v not in AREA_TYPES.keys():
+                        AREA_TYPES[v] = gmeantools.cube_sphere_aggregate(v, f)
 
-    global cellDepth
+    global CELL_DEPTH
 
-    depth = data_tiles[0].variables["zhalf_soil"][:]
-    cellDepth = []
+    depth = DATA_TILES[0].variables["zhalf_soil"][:]
+    CELL_DEPTH = []
     for i in range(1, len(depth)):
         thickness = round((depth[i] - depth[i - 1]), 2)
-        cellDepth.append(thickness)
-    cellDepth = np.array(cellDepth)
+        CELL_DEPTH.append(thickness)
+    CELL_DEPTH = np.array(CELL_DEPTH)
 
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    pool.map(process_var, data_tiles[0].variables.keys())
+    pool.map(process_var, DATA_TILES[0].variables.keys())

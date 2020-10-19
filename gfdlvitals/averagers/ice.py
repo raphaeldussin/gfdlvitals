@@ -1,20 +1,33 @@
-import numpy as np
+""" tripolar ice averaging utilities """
+
 import multiprocessing
+import numpy as np
 
 import gfdlvitals.util.gmeantools as gmeantools
 
 __all__ = ["process_var", "average"]
 
+FGS = None
+FDATA = None
+FYEAR = None
+OUTDIR = None
+LABEL = None
+GEOLON = None
+GEOLAT = None
+CELL_AREA = None
+average_DT = None
+
 
 def process_var(v):
-    if fdata.variables[v].shape == cellArea.shape:
-        units = gmeantools.extract_metadata(fdata, v, "units")
-        long_name = gmeantools.extract_metadata(fdata, v, "long_name")
-        data = fdata.variables[v][:]
+    """ routine to process a variable """
+    if FDATA.variables[v].shape == CELL_AREA.shape:
+        units = gmeantools.extract_metadata(FDATA, v, "units")
+        long_name = gmeantools.extract_metadata(FDATA, v, "long_name")
+        data = FDATA.variables[v][:]
         for reg in ["global", "nh", "sh"]:
-            sqlite_out = outdir + "/" + fYear + "." + reg + "Ave" + label + ".db"
+            sqlite_out = OUTDIR + "/" + FYEAR + "." + reg + "Ave" + LABEL + ".db"
             _v, _area = gmeantools.mask_latitude_bands(
-                data, cellArea, geoLat, region=reg
+                data, CELL_AREA, GEOLAT, region=reg
             )
             _v = np.ma.sum((_v * _area), axis=(-1, -2)) / np.ma.sum(
                 _area, axis=(-1, -2)
@@ -24,69 +37,73 @@ def process_var(v):
             gmeantools.write_sqlite_data(
                 sqlite_out,
                 v + "_mean",
-                fYear[:4],
+                FYEAR[:4],
                 np.ma.average(_v, axis=0, weights=average_DT),
             )
             gmeantools.write_sqlite_data(
-                sqlite_out, v + "_max", fYear[:4], np.ma.max(_v)
+                sqlite_out, v + "_max", FYEAR[:4], np.ma.max(_v)
             )
             gmeantools.write_sqlite_data(
-                sqlite_out, v + "_min", fYear[:4], np.ma.min(_v)
+                sqlite_out, v + "_min", FYEAR[:4], np.ma.min(_v)
             )
 
 
 def average(f1, f2, year, out, lab):
-    global fgs
-    global fdata
-    global fYear
-    global outdir
-    global label
+    """ averaging function """
 
-    fgs = f1
-    fdata = f2
-    fYear = year
-    outdir = out
-    label = lab
+    global FGS
+    global FDATA
+    global FYEAR
+    global OUTDIR
+    global LABEL
+
+    FGS = f1
+    FDATA = f2
+    FYEAR = year
+    OUTDIR = out
+    LABEL = lab
 
     # geometry
-    global geoLon
-    global geoLat
-    global cellArea
+    global GEOLON
+    global GEOLAT
+    global CELL_AREA
 
-    geoLon = fgs.variables["GEOLON"][:]
-    geoLat = fgs.variables["GEOLAT"][:]
+    GEOLON = FGS.variables["GEOLON"][:]
+    GEOLAT = FGS.variables["GEOLAT"][:]
 
     global average_DT
-    average_DT = fdata.variables["average_DT"][:]
+    average_DT = FDATA.variables["average_DT"][:]
 
-    if "CELL_AREA" in fgs.variables.keys():
+    if "CELL_AREA" in FGS.variables.keys():
         rE = 6371.0e3  # Radius of the Earth in 'm'
-        cellArea = fgs.variables["CELL_AREA"][:] * (4.0 * np.pi * (rE ** 2))
-    elif "area" in fgs.variables.keys():
-        cellArea = fgs.variables["area"][:]
+        CELL_AREA = FGS.variables["CELL_AREA"][:] * (4.0 * np.pi * (rE ** 2))
+    elif "area" in FGS.variables.keys():
+        CELL_AREA = FGS.variables["area"][:]
     else:
         print("FATAL: unable to determine cell area used in ice model")
 
-    if "siconc" in fdata.variables.keys():
-        concentration = fdata.variables["siconc"][:]
-    elif "CN" in fdata.variables.keys():
-        concentration = np.ma.sum(fdata.variables["CN"][:], axis=-3)
+    if "siconc" in FDATA.variables.keys():
+        concentration = FDATA.variables["siconc"][:]
+    elif "CN" in FDATA.variables.keys():
+        concentration = np.ma.sum(FDATA.variables["CN"][:], axis=-3)
     else:
         print("FATAL: unable to determine ice concentration")
 
-    geoLat = np.tile(geoLat[None, :], (concentration.shape[0], 1, 1))
-    geoLon = np.tile(geoLon[None, :], (concentration.shape[0], 1, 1))
-    cellArea = np.tile(cellArea[None, :], (concentration.shape[0], 1, 1))
+    GEOLAT = np.tile(GEOLAT[None, :], (concentration.shape[0], 1, 1))
+    GEOLON = np.tile(GEOLON[None, :], (concentration.shape[0], 1, 1))
+    CELL_AREA = np.tile(CELL_AREA[None, :], (concentration.shape[0], 1, 1))
 
     for reg in ["global", "nh", "sh"]:
-        sqlite_out = outdir + "/" + fYear + "." + reg + "Ave" + label + ".db"
-        vars = []
+        sqlite_out = OUTDIR + "/" + FYEAR + "." + reg + "Ave" + LABEL + ".db"
+        variables = []
         # area and extent in million square km
         _conc, _area = gmeantools.mask_latitude_bands(
-            concentration, cellArea, geoLat, region=reg
+            concentration, CELL_AREA, GEOLAT, region=reg
         )
-        vars.append(("area", (np.ma.sum((_conc * _area), axis=(-1, -2)) * 1.0e-12)))
-        vars.append(
+        variables.append(
+            ("area", (np.ma.sum((_conc * _area), axis=(-1, -2)) * 1.0e-12))
+        )
+        variables.append(
             (
                 "extent",
                 (
@@ -98,19 +115,19 @@ def average(f1, f2, year, out, lab):
                 ),
             )
         )
-        for v in vars:
+        for v in variables:
             gmeantools.write_sqlite_data(
                 sqlite_out,
                 v[0] + "_mean",
-                fYear[:4],
+                FYEAR[:4],
                 np.ma.average(v[1], weights=average_DT),
             )
             gmeantools.write_sqlite_data(
-                sqlite_out, v[0] + "_max", fYear[:4], np.ma.max(v[1])
+                sqlite_out, v[0] + "_max", FYEAR[:4], np.ma.max(v[1])
             )
             gmeantools.write_sqlite_data(
-                sqlite_out, v[0] + "_min", fYear[:4], np.ma.min(v[1])
+                sqlite_out, v[0] + "_min", FYEAR[:4], np.ma.min(v[1])
             )
 
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    pool.map(process_var, fdata.variables.keys())
+    pool.map(process_var, FDATA.variables.keys())
