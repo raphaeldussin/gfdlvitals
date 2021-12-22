@@ -86,7 +86,7 @@ def xr_weighted_avg(dset, weights):
             if sorted(dset[x].dims) == sorted(weight.dims):
                 _dset[x] = dset[x]
 
-        _dset_weighted = _dset.weighted(weight).mean()
+        _dset_weighted = _dset.weighted(weight.fillna(0.)).mean()
         for x in list(_dset_weighted.variables):
             _dset_weighted[x] = _dset_weighted[x].astype(dset[x].dtype)
             _dset_weighted[x].attrs = dset[x].attrs
